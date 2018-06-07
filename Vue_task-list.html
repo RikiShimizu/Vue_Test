@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css">
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/3.2.1/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vue"></script>
+<script src="vue-drop-drag.js"></script>
+<title>タスクボード</title>
+</head>
+
+
+<body>
+
+
+<style>
+h2 {
+color: #d2691e;
+font-family: 'Chalkduster',sans-serif;
+font-size: 2.8rem;
+font-weight: bold;
+margin: 20px 0;
+text-align: center;
+}
+
+.col-sm-3 {
+height: -webkit-fill-available;
+overflow: scroll;
+}
+
+/* Set gray background color and 100% height */
+.sidenav {
+background-color: #f7f7f7;
+}
+.sidenav-2 {
+background: #fffdf2;
+}
+.btn-info {
+color: #a0a0a0;
+background-color: #faff2e;
+border-color: #d3da46;
+}
+.deleted-box {
+position: fixed;
+bottom: 25px;
+right: 2%;
+}
+a.btn.btn-info.btn-lg {
+padding: 18px 25px;
+}
+
+
+/* On small screens, set height to 'auto' for sidenav and grid */
+@media screen and (max-width: 650px) {
+.sidenav {
+height: auto;
+padding: 15px;
+}
+.row.content {
+height: auto;
+}
+}
+
+
+.task-view {
+border: 2px solid #333;
+border-radius: 6px;
+margin: 6px 0;
+}
+
+.task-view textarea {
+font-weight: bold;
+resize: vertical;
+}
+
+.task-view.darkorchid {
+border-color: #50a6f1;
+}
+
+.task-view.darkorchid textarea {
+color: #50a6f1;
+}
+
+.task-view.green {
+border-color: #59bd92;
+}
+
+.task-view.green textarea {
+color: #59bd92;
+}
+
+.task-view.red {
+border-color: red;
+}
+
+.task-view.red textarea {
+color: red;
+}
+</style>
+
+
+<div id="task-manager" class="container-fluid">
+<div class="row content">
+<div class="col-sm-3 sidenav" @dragover.prevent @drop="drop(1)" @dragover.prevent @dragover="dragover()">
+<h2>Plan</h2>
+<button v-on:click="addNewTask" type="button" class="btn btn-info">Add</button>
+<div v-for="taskItem in taskList" v-if="taskItem.type == 1" draggable="true"
+ @dragover.prevent @dragstart="dragstart(taskItem)"
+ @dragover.prevent @dragend="dragend(taskItem)"
+ class="row task-view">
+<textarea class="form-control" rows="3" v-model="taskItem.content" v-on:change="storage">
+</textarea>
+</div>
+</div>
+<div class="col-sm-3 sidenav-2" @dragover.prevent @drop="drop(2)" @dragover.prevent @dragover="dragover()">
+<h2>In Progress</h2>
+<div v-for="taskItem in taskList" v-if="taskItem.type == 2" draggable="true"
+ @dragover.prevent @dragstart="dragstart(taskItem)"
+ @dragover.prevent @dragend="dragend(taskItem)"
+ class="row task-view darkorchid">
+<textarea class="form-control" rows="3" v-model="taskItem.content" v-on:change="storage">
+</textarea>
+</div>
+</div>
+<div class="col-sm-3 sidenav" @dragover.prevent @drop="drop(3)" @dragover.prevent @dragover="dragover()">
+<h2>Completed</h2>
+<div v-for="taskItem in taskList" v-if="taskItem.type == 3" draggable="true"
+ @dragover.prevent @dragstart="dragstart(taskItem)"
+ @dragover.prevent @dragend="dragend(taskItem)"
+ class="row task-view green">
+<textarea class="form-control" rows="3" v-model="taskItem.content" v-on:change="storage">
+</textarea>
+</div>
+</div>
+<div class="col-sm-3 sidenav-2" @dragover.prevent @drop="drop(4)" @dragover.prevent @dragover="dragover()">
+<h2>Cancel</h2>
+<div v-for="taskItem in taskList" v-if="taskItem.type == 4" draggable="true"
+ @dragover.prevent @dragstart="dragstart(taskItem)"
+ @dragover.prevent @dragend="dragend(taskItem)"
+ class="row task-view red">
+<textarea class="form-control" rows="3" v-model="taskItem.content" v-on:change="storage">
+</textarea>
+</div>
+</div>
+
+<div class="deleted-box" @dragover.prevent @drop="drop(5)" @dragover.prevent @dragover="dragover()">
+<a class="btn btn-info btn-lg">
+ここにドラッグ<br>
+<span class="glyphicon glyphicon-trash"></span> Trash
+</a>
+</div>
+</div>
+</div>
+
+
+<script>
+$(function () {
+	var TaskItem = function () {
+		var self = this;
+		self.content = "";
+		self.type = 1;
+	};
+	var taskList = JSON.parse(localStorage.getItem("thuong_task_list"));
+	if (taskList == null) {
+		taskList = [];
+	};
+
+	// Create a root instance
+	new Vue({
+		el: '#task-manager',
+		data: {
+			taskList: taskList,
+			draggingTaskItem: null,
+		},
+		methods: {
+			storage: function () {
+				localStorage.setItem("thuong_task_list", JSON.stringify(this.taskList));
+			},
+			addNewTask: function (event) {
+				this.taskList.unshift(new TaskItem());
+				this.storage();
+			},
+			//Drag Drop
+			dragover: function (ev) {
+				console.log('dragover');
+			},
+			drop: function (taskGroupType, ev) {
+				console.log('drop');
+				console.log('Task Item: ' + this.draggingTaskItem.content);
+				this.draggingTaskItem.type = taskGroupType;
+				this.storage();
+			},
+			dragstart: function (/** TaskItem **/ taskItem, ev) {
+				console.log('dragstart');
+				this.draggingTaskItem = taskItem;
+			},
+			dragend: function (/** TaskItem **/ taskItem, ev) {
+				console.log('dragend');
+				this.draggingTaskItem = null;
+			}
+		}
+	});
+});
+</script>
+
+
+
+</body>
+</html>
